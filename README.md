@@ -8,8 +8,9 @@ At the moment, the most useful thing it does is provide an interface for enablin
 Commands
 --------
 
-The CLI tool understands 5 different commands;
+The CLI tool understands a few different commands;
 
+    list     - List pools
     describe - Describe a pool
     disable  - Disable a node
     drain    - Drain a node

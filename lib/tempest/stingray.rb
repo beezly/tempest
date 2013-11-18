@@ -21,7 +21,11 @@ module Tempest
     def protocol_version
       '1.0'
     end
-
+    
+    def pools
+      Pool.all self
+    end
+    
     class Generic
       attr_reader :raw_data
 
@@ -94,6 +98,12 @@ module Tempest
         raise "Could not find #{node} in #{@name}" unless has_node? node
         @raw_data["properties"]["basic"]["draining"] = @raw_data["properties"]["basic"]["draining"] | [node]
         put
+      end
+
+      def self.all sr
+        response = sr.class.get "#{sr.uri}/api/tm/#{sr.protocol_version}/config/active/pools", {basic_auth: sr.auth}
+        raise response["error_text"] unless response.code == 200
+        response.parsed_response["children"].map {|x| x["name"]}
       end
 
       private

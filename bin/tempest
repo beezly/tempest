@@ -71,6 +71,13 @@ command :drain do |c|
   end
 end
 
+desc 'List pools'
+command :list do |c|
+  c.action do |global_options,options,args|
+    list_pools @sr.pools
+  end
+end
+
 pre do |global,command,options,args|
   CONFIG_FILE = File.join(ENV['HOME'],'.tempest.yaml')
   if File.exists? CONFIG_FILE
@@ -103,6 +110,14 @@ def describe_pool pool
   
   table.rows.sort_by! { |x| x[0] }
   
+  puts table.to_s
+end
+
+def list_pools pools
+  table = Text::Table.new
+  table.head = ['Pool']
+  table.rows = []
+  table.rows+= pools
   puts table.to_s
 end
 
