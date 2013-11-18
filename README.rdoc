@@ -1,6 +1,0 @@
-= tempest
-
-Describe your project here
-
-:include:tempest.rdoc
-

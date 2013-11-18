@@ -26,4 +26,5 @@ lib/tempest.rb
   s.add_development_dependency('aruba')
   s.add_runtime_dependency('gli','2.8.1')
   s.add_runtime_dependency('httparty','0.12.0')
+  s.add_runtime_dependency('text-table','1.2.3')
 end

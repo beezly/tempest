@@ -2,6 +2,7 @@
 require 'gli'
 require 'tempest'
 require 'yaml'
+require 'text-table'
 
 include GLI::App
 
@@ -21,36 +22,52 @@ desc 'URL of the Stingray Traffic Manager'
 arg_name 'URL'
 flag [:url,:s]
 
+desc 'Describe a pool'
+arg_name '<pool>'
+command :describe do |c|
+  c.action do |global_options,options,args|
+    pool = args[0]
+    raise ArgumentError, "You must specify a pool argument" unless pool
+    describe_pool Tempest::Stingray::Pool.new(@sr, pool)
+  end
+end
+
 desc 'Enable a node'
-arg_name 'Describe arguments to enable here'
+arg_name '<node> <pool>'
 command :enable do |c|
   c.action do |global_options,options,args|
     node = args[0]
     pool = args[1]
-    @sr.enable_node node, pool
-    puts "enable command ran"
+    raise ArgumentError, "You must specify a node and pool argument" unless (node and pool)
+    p=Tempest::Stingray::Pool.new(@sr, pool)
+    p.enable_node node
+    describe_pool p
   end
 end
 
 desc 'Disable a node'
-arg_name 'Describe arguments to disable here'
+arg_name '<node> <pool>'
 command :disable do |c|
   c.action do |global_options,options,args|
     node=args[0]
     pool=args[1]
-    @sr.disable_node node, pool
-    puts "disable command ran"
+    raise ArgumentError, "You must specify a node and pool argument" unless (node and pool)
+    p=Tempest::Stingray::Pool.new(@sr, pool)
+    p.disable_node node
+    describe_pool p
   end
 end
 
 desc 'Drain a node'
-arg_name 'Describe arguments to drain here'
+arg_name '<node> <pool>'
 command :drain do |c|
   c.action do |global_options,options,args|
     node=args[0]
     pool=args[1]
-    @sr.drain_node node, pool
-    puts "drain command ran"
+    raise ArgumentError, "You must specify a node and pool argument" unless (node and pool)
+    p=Tempest::Stingray::Pool.new @sr, pool
+    p.drain_node node
+    describe_pool p
   end
 end
 
@@ -60,7 +77,7 @@ pre do |global,command,options,args|
     config_options = YAML.load_file(CONFIG_FILE)
     global.merge!(config_options) { |key, v1, v2| v2 }
   end
-  @sr = Stingray.new global['url'], global['username'], global['password']
+  @sr = Tempest::Stingray.new global['url'], global['username'], global['password']
   true
 end
 
@@ -70,10 +87,23 @@ post do |global,command,options,args|
   # block on that command only
 end
 
-on_error do |exception|
+#on_error do |exception|
   # Error logic here
   # return false to skip default error handling
-  true
+#  true
+#end
+
+def describe_pool pool
+  table = Text::Table.new
+  table.head = ['Node','State']
+  table.rows = []
+  table.rows+= (pool.enabled_nodes.map(){ |x| [x, 'enabled'] })
+  table.rows+= (pool.disabled_nodes.map(){ |x| [x, 'disabled'] })
+  table.rows+= (pool.draining_nodes.map(){ |x| [x, 'draining'] })
+  
+  table.rows.sort_by! { |x| x[0] }
+  
+  puts table.to_s
 end
 
 exit run(ARGV)
