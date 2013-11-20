@@ -22,13 +22,17 @@ desc 'URL of the Stingray Traffic Manager'
 arg_name 'URL'
 flag [:url,:s]
 
+desc 'Verbose'
+arg_name 'verbose'
+switch [:verbose, :v]
+
 desc 'Describe a pool'
 arg_name '<pool>'
 command :describe do |c|
   c.action do |global_options,options,args|
     pool = args[0]
     raise ArgumentError, "You must specify a pool argument" unless pool
-    describe_pool Tempest::Stingray::Pool.new(@sr, pool)
+    describe_pool Tempest::Stingray::Pool.new(@sr, pool), global_options[:verbose]
   end
 end
 
@@ -41,7 +45,7 @@ command :enable do |c|
     raise ArgumentError, "You must specify a node and pool argument" unless (node and pool)
     p=Tempest::Stingray::Pool.new(@sr, pool)
     p.enable_node node
-    describe_pool p
+    describe_pool p, global_options[:verbose]
   end
 end
 
@@ -54,7 +58,7 @@ command :disable do |c|
     raise ArgumentError, "You must specify a node and pool argument" unless (node and pool)
     p=Tempest::Stingray::Pool.new(@sr, pool)
     p.disable_node node
-    describe_pool p
+    describe_pool p, global_options[:verbose]
   end
 end
 
@@ -67,14 +71,28 @@ command :drain do |c|
     raise ArgumentError, "You must specify a node and pool argument" unless (node and pool)
     p=Tempest::Stingray::Pool.new @sr, pool
     p.drain_node node
-    describe_pool p
+    describe_pool p, global_options[:verbose]
   end
 end
 
 desc 'List pools'
-command :list do |c|
+command :pools do |c|
   c.action do |global_options,options,args|
-    list_pools @sr.pools
+    list_pools @sr.pools, global_options[:verbose]
+  end
+end
+
+desc 'List vservers'
+command :vservers do |c|
+  c.action do |global_options,options,args|
+    list_vservers @sr.vservers, global_options[:verbose]
+  end
+end
+
+desc 'List traffic IPs'
+command :trafficips do |c|
+  c.action do |global_options,options,args|
+    list_trafficips @sr.traffic_ips, global_options[:verbose]
   end
 end
 
@@ -100,24 +118,69 @@ end
 #  true
 #end
 
-def describe_pool pool
+def describe_pool pool, verbose=false
   table = Text::Table.new
-  table.head = ['Node','State']
-  table.rows = []
-  table.rows+= (pool.enabled_nodes.map(){ |x| [x, 'enabled'] })
-  table.rows+= (pool.disabled_nodes.map(){ |x| [x, 'disabled'] })
-  table.rows+= (pool.draining_nodes.map(){ |x| [x, 'draining'] })
-  
+  table.head = ['Node']
+  table.head += ['State'] if verbose
+
+  all_nodes = {'enabled' => pool.enabled_nodes, 
+    'disabled' => pool.disabled_nodes, 
+    'draining' => pool.draining_nodes}
+    
+  all_nodes.map do |nodestate,nodes|
+    nodes.map do |node|
+      row = [node]
+      row.concat [nodestate] if verbose
+      table.rows+=[row]
+    end
+  end
+
   table.rows.sort_by! { |x| x[0] }
   
   puts table.to_s
 end
 
-def list_pools pools
+def list_pools pools, verbose=false
   table = Text::Table.new
   table.head = ['Pool']
+  table.head += ['Node'] if verbose
+      
+  pools.each do |name,pool|
+    if verbose
+      pool.nodes.each { |node| table.rows+= [[name,node]] }      
+    else
+      table.rows+=[[name]]
+    end
+  end  
+  
+  table.rows.sort_by! { |x| x[0] }
+  puts table.to_s
+  
+end
+
+def list_vservers vservers, verbose=false
+  table = Text::Table.new
+  table.head = ['Vserver']
+  table.head += ['Pool'] if verbose
+      
+  vservers.each do |name,vserver|
+    if verbose
+      table.rows+= [[name,vserver.default_pool]]  
+    else
+      table.rows+=[[name]]
+    end
+  end  
+  
+  table.rows.sort_by! { |x| x[0] }
+  puts table.to_s
+end
+
+def list_trafficips trafficips
+  table = Text::Table.new
+  table.head = ['Traffic IPs']
   table.rows = []
-  table.rows+= pools
+  table.rows+= trafficips
+  table.rows.sort_by! { |x| x[0] }
   puts table.to_s
 end
 
