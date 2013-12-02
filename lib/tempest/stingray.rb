@@ -116,6 +116,13 @@ module Tempest
       def node_is_draining? node
         @raw_data["properties"]["basic"]["draining"].include? node
       end
+
+      def node_state node
+        raise "Could not find #{node} in #{@name}" unless has_node? node
+        return "draining" if node_is_draining? node 
+        return "disabled" if node_is_disabled? node
+        "enabled"
+      end
       
       # Enable a node
       def enable_node node
