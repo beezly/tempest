@@ -143,11 +143,11 @@ end
 def list_pools pools, verbose=false
   table = Text::Table.new
   table.head = ['Pool']
-  table.head += ['Node'] if verbose
+  table.head += ['Node','State'] if verbose
       
   pools.each do |name,pool|
     if verbose
-      pool.nodes.each { |node| table.rows+= [[name,node]] }      
+      pool.nodes.each { |node| table.rows+= [[name,node,pool.node_state(node)]] }      
     else
       table.rows+=[[name]]
     end
@@ -175,7 +175,7 @@ def list_vservers vservers, verbose=false
   puts table.to_s
 end
 
-def list_trafficips trafficips
+def list_trafficips trafficips, verbose=false
   table = Text::Table.new
   table.head = ['Traffic IPs']
   table.rows = []
